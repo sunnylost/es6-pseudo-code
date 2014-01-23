@@ -25,12 +25,29 @@ function Type(V) {
  * String
  * Number
  * Object
- * Symbol
  */
+
+/**
+ * http://tc39wiki.calculist.org/es6/symbols/
+ * 
+ * @param {[type]} name [description]
+ */
+function Symbol(name) {
+    this.__Description__ = name;
+}
 
 /**
  * Well-Known Symbols
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-well-known-symbols
+ *
+ * @@create             'Symbol.create'
+ * @@hasInstance        'Symbol.hasInstance'
+ * @@isConcatSpreadable 'Symbol.isConcatSpreadable'
+ * @@isRegExp           'Symbol.isRegExp'
+ * @@iterator           'Symbol.iterator'
+ * @@toPrimitive        'Symbol.toPrimitive'
+ * @@toStringTag        'Symbol.toStringTag'
+ * @@unscopables        'Symbol.unscopables'
  */
 
 /**
@@ -45,7 +62,7 @@ function Property() {
 
 function DataProperty() {
     Property.call(this);
-    this.__Value__ = undefined;
+    this.__Value__    = undefined;
     this.__Writable__ = false;
 }
 
