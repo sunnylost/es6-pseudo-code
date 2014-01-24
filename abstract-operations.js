@@ -1,12 +1,18 @@
 /**
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-abstract-operations
+ *
+ * NOTE:
+ *     In this specification, only Date Objects and Symbol objects over-ride default ToPrimitive behaviour.
  */
-
 function ToPrimitive(argument, PreferredType) {
     var type = Type(argument),
         hint;
     if(type === 'completion record') {
-        //TODO
+        if(argument.__type__ !== 'normal') { // abrupt completion
+            return argument;
+        } else {
+            return ToPrimitive(argument.__value__, PreferredType);
+        }
     } else if(type === 'object') {
         if(!PreferredType) {
             hint = 'default';
@@ -16,13 +22,88 @@ function ToPrimitive(argument, PreferredType) {
             hint = 'number';
         }
 
-        //TODO
+        var exoticToPrim = Get(argument, @@toPrimitive); //@@ means well-known Symbol
+        ReturnIfAbrupt(exoticToPrim);
+        if(exoticToPrim !== undefine) {
+            if(!IsCallable(exoticToPrim)) throw TypeError();
+            var result = exoticToPrim.__Call__(thisArgument, new List(hint));
+            ReturnIfAbrupt(result);
+            if(Type(result) != 'object') {// result must be an ECMAScript language value 
+                return result;  
+            } else {
+                throw TypeError();
+            }
+        }
+        if(hint === 'default') hint = 'number';
+        return OrdinaryToPrimitive(argument, hint);
     } else {
         return argument;
     }
 }
 
-function ToBoolean(argument) {}
+function OrdinaryToPrimitive(O, hint) {
+    if(Type(O) === 'object') {
+        var type = Type(hint);
+        var methodNames;
+        if(type === 'string' || type === 'number') {
+            if(hint === 'string') {
+                methodNames = new List('toString', 'valueOf');
+            } else {
+                methodNames = new List('valueOf', 'toString');
+            }
+            for(var name in methodNames) {
+                var method = methodNames[name];
+                ReturnIfAbrupt(method);
+                if(IsCallable(method)) {
+                    var result = method.__Call__(O, new List());
+                    ReturnIfAbrupt(result);
+                    if(Type(result) !== 'object') return result;
+                }
+            }
+
+            throw TypeError();
+        }
+    }
+}
+
+/**
+ * return false:
+ *     +0
+ *     -0
+ *     NaN
+ *     ''
+ *     null
+ *     undefined
+ */
+function ToBoolean(argument) {
+    var type = Type(argument);
+    if(type === 'completion record') {
+        if(argument.__type__ !== 'normal') { // abrupt completion
+            return argument;
+        } else {
+            return ToBoolean(argument.__value__);
+        }
+    } else if(type === 'undefine') {
+        return false;
+    } else if(type === 'null') {
+        return false;
+    } else if(type === 'boolean') {
+        return argument;
+    } else if(type === 'number') {
+        if(argument === +0 || argument === -0 || argument === NaN) {
+            return false;
+        }
+        return true;
+    } else if(type === 'string') {
+        if(argument.length === 0) return false;// empty string
+        return true;
+    } else if(type === 'symbol') {
+        return true;
+    } else if(type === 'object') {
+        return true;
+    }
+}
+
 function ToNumber(argument) {}
 function ToInteger(argument) {}
 function ToInt32(argument) {}
@@ -71,3 +152,19 @@ function CreateListFromArrayLike(obj){}
 function OrdinaryHasInstance(C, O){}
 function GetPrototypeFromConstructor(constructor, intrinsicDefaultProto){}
 function OrdinaryCreateFromConstructor(constructor, intrinsicDefaultProto, internalDataList){}
+
+/**
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-operations-on-iterator-objects
+ *
+ * Operation on Iterator Objects
+ */
+
+function GetIterator(obj) {}
+function IteratorNext(iterator, value) {}
+function IteratorComplete(iterResult) {}
+function IteratorValue(iterResult) {}
+function IteratorStep(iterator, value) {}
+function CreateResultObject(value, done) {}
+function CreateListIterator(list) {}
+//ListIterator next()
+function CreateEmptyIterator() {}
