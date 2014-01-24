@@ -55,19 +55,19 @@ function Symbol(name) {
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-property-attributes
  */
 
-function Property() {
+function PropertyDescriptor() {
     this.__Enumerable__   = false;
     this.__Configurable__ = false;
 }
 
-function DataProperty() {
-    Property.call(this);
+function DataDescriptor() {
+    PropertyDescriptor.call(this);
     this.__Value__    = undefined;
     this.__Writable__ = false;
 }
 
-function AccessorProperty() {
-    Property.call(this);
+function AccessorDescriptor() {
+    PropertyDescriptor.call(this);
     this.__Get__ = undefined;
     this.__Set__ = undefined;
 }
@@ -331,6 +331,109 @@ function GetThisValue(V) {
  * The Property Descriptor Specification Type
  */
 
-function PropertyDescriptor() {}
+function IsAccessorDescriptor(Desc) {
+    if(Desc === undefined) return false;
+    if(Desc.__Get__ && Desc.__Set__) return false;
+    return true;
+}
 
-//TODO
+function IsDataDescriptor(Desc) {
+    if(Desc === undefined) return false;
+    if(Desc.__Value__ && Desc.__Writable__) return false;
+    return true;
+}
+
+function IsGenericDescriptor(Desc) {
+    if(Desc === undefined) return false;
+    if(!IsAccessorDescriptor(Desc) && !IsDataDescriptor(Desc)) return true;
+    return false;
+}
+
+function FromPropertyDescriptor(Desc) {
+    if(Desc === undefined) return undefined;
+    if('__Origin__' in Desc) return Desc.__Origin__;
+    var obj = Object.create(Object.prototype);
+    //Assert
+    if('__Value__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'value', {
+            [[Value]]: Desc.__Value__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    if('__Writable__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'Writable', {
+            [[Value]]: Desc.__Writable__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    if('__Get__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'get', {
+            [[Value]]: Desc.__Get__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    if('__Set__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'Set', {
+            [[Value]]: Desc.__Set__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    if('__Enumerate__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'enumerable', {
+            [[Value]]: Desc.__Enumerate__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    if('__Configurable__' in Desc) {
+        OrdinaryDefineOwnProperty(obj, 'configurable', {
+            [[Value]]: Desc.__Configurable__,
+            [[Writable]]: true,
+            [[Enumerable]]: true,
+            [[Configurable]]: true
+        })
+    }
+
+    return obj;
+}
+
+function ToPropertyDescriptor(Obj) {
+    //...
+}
+
+function CompletePropertyDescriptor(Desc, LikeDesc) {
+    //...
+}
+
+/**
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-data-blocks
+ */
+function DataBlock(size) {
+}
+
+function CreateByteDataBlock(size) {
+    var db = new DataBlock(size);
+    if(!db) {
+        throw RangeError();
+    }
+    for(var i = 0; i < size; i++) {
+        db[i] = 0;
+    }
+    return db;
+}
+
+function CopyDataBlockBytes(toBlock, toIndex, fromBlock, fromIndex, count) {}
