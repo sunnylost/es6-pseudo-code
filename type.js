@@ -29,7 +29,7 @@ function Type(V) {
 
 /**
  * http://tc39wiki.calculist.org/es6/symbols/
- * 
+ *
  * @param {[type]} name [description]
  */
 function Symbol(name) {
@@ -75,22 +75,120 @@ function AccessorProperty() {
 /**
  * Object Internal Methods and Internal Slots
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-object-internal-methods-and-internal-slots
+ *
+ * These names are polymorphic.
+ *
+ * The target of an internal method is the object the internal method is called upon.
+ *
+ * A target is non-extensible if it has been observed to return false from its [[IsExtensible]] internal method, or true from its [[PreventExtensions]] internal method.
+ *
+ * A non-existent property is a property that does not exist as an own property on a non-extensible target.
+ *
  */
 
+/**
+ *
+ * Determine the object that provides inherited properties for this object.
+ * A null value indicates that there are no inherited properties.
+ *
+ * return either Object or Null
+ *
+ * An object's prototype chain must have finite length.
+ */
 Object.prototype.__GetPrototypeOf__ = K;
+
+/**
+ * Associate with an object another object that provides inherited properties.
+ * Passing null indicates that there are no inherited properties.
+ * Returns true indicating that the operation was completed successfully
+ * or false indicating that the operation was not successful.
+ *
+ * Must return Boolean Type.
+ */
 Object.prototype.__SetPrototypeOf__ = K;
+
+/**
+ * Determine whether it is permitted to add additional properties to an object.
+ */
 Object.prototype.__IsExtensible__ = K;
+
+/**
+ * Control whether new properties may be added to an object.
+ * Returns true indicating that the operation was completed successfully
+ * or false indicating that the operation was not successful.
+ */
 Object.prototype.__PreventExtensions__ = K;
+
+/**
+ * Returns a Property Descriptor for the own property of this object
+ * whose key is propertyKey, or undefined if no such property exists.
+ */
 Object.prototype.__GetOwnProperty__ = K;
+
+/**
+ * Returns a Boolean value indicating whether the object
+ * already has either an own or inherited property whose key is propertyKey.
+ */
 Object.prototype.__HasProperty__ = K;
+
+/**
+ * Retrieve the value of an object’s property using the propertyKey parameter.
+ * If any ECMAScript code must be executed to retrieve the property value,
+ * Receiver is used as the this value when evaluating the code.
+ */
 Object.prototype.__Get__ = K;
+
+/**
+ * Try to set the value of an object’s property indentified by propertyKey to value.
+ * If any ECMAScript code must be executed to set the property value,
+ * Receiver is used as the this value when evaluating the code.
+ * Returns true indicating that the property value was set or false
+ * indicating that it could not be set.
+ */
 Object.prototype.__Set__ = K;
+
+/**
+ * Removes the own property indentified by the propertyKey parameter from the object.
+ * Return false if the property was not deleted and is still present.
+ * Return true if the property was deleted or was not present.
+ */
 Object.prototype.__Delete__ = K;
+
+/**
+ * Creates or alters the named own property to have the state described
+ * by a Property Descriptor. Returns true indicating that the property was
+ * successfully created/updated or false indicating that the property could
+ * not be created or updated.
+ */
 Object.prototype.__DefineOwnProperty__ = K;
+
+/**
+ * Returns an iterator object over the string values of the keys
+ * of the enumerable properties of the object.
+ */
 Object.prototype.__Enumerate__ = K;
+
+/**
+ * Returns an Iterator object that produces all of the own property keys for the object.
+ */
 Object.prototype.__OwnPropertyKeys__ = K;
 
+/**
+ * Executes code associated with the object.
+ * Invoked via a function call expression.
+ * The arguments to the internal method are a this value and
+ * a list containing the arguments passed to the function by a call expression.
+ * Objects that implement this internal method are callable.
+ */
 Function.prototype.__Call__ = K;
+
+/**
+ * Creates an object. Invoked via the new operator.
+ * The arguments to the internal method are the arguments passed to the new operator.
+ * Objects that implement this internal method are called constructors.
+ * A Function object is not necessarily a constructor and such non-constructor Function
+ * objects do not have a [[Construct]] internal method.
+ */
 Function.prototype.__Construct__ = K;
 
 //http://people.mozilla.org/~jorendorff/es6-draft.html#sec-invariants-of-the-essential-internal-methods
@@ -98,12 +196,26 @@ Function.prototype.__Construct__ = K;
 
 /**
  * Specification Types
+ *
+ *  Reference
+ *  List
+ *  Completion
+ *  Property Descriptor
+ *  Lexical Environment
+ *  Environment Record
+ *  Data Block
  */
 
+/**
+ * used for explain **arguments** list
+ */
 function List() {}
 
-function Record(){}
+function Record() {}
 
+/**
+ * http://wiki.ecmascript.org/doku.php?id=harmony:completion_reform
+ */
 function CompletionRecord() {
     Record.call(this);
     this.__type__ = 'normal';//normal, break, continue, return, throw
@@ -195,7 +307,7 @@ function PutValue(V, W) {
         succeeded = base.__Set__(GetReferenceName(V), W, GetThisValue(V));
         ReturnIfArupt(succeeded);
         if(!succeeded && IsStrictReference(V)) throw new TypeError();
-        return; 
+        return;
     } else {
         return base.SetMutableBinding(GetReferenceName(V), W, IsStrictReference(V));
     }
