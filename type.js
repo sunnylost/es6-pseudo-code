@@ -228,10 +228,10 @@ function ReturnIfArupt(argument) {}
 /**
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-reference-specification-type
  */
-function Reference() {
-    this.base = undefined;
-    this.referenceName = undefined;
-    this.strictReference = false;
+function Reference(base, referenceName, strictReference) {
+    this.base = base || undefined;
+    this.referenceName = referenceName || undefined;
+    this.strictReference = strictReference || false;
 }
 
 function GetBase(V) {
