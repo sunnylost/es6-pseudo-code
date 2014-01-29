@@ -33,7 +33,7 @@ function Type(V) {
  * @param {[type]} name [description]
  */
 function Symbol(name) {
-    this.__Description__ = name;
+    this.[[Description]] = name;
 }
 
 /**
@@ -56,20 +56,20 @@ function Symbol(name) {
  */
 
 function PropertyDescriptor() {
-    this.__Enumerable__   = false;
-    this.__Configurable__ = false;
+    this.[[Enumerable]]   = false;
+    this.[[Configurable]] = false;
 }
 
 function DataDescriptor() {
     PropertyDescriptor.call(this);
-    this.__Value__    = undefined;
-    this.__Writable__ = false;
+    this.[[Value]]    = undefined;
+    this.[[Writable]] = false;
 }
 
 function AccessorDescriptor() {
     PropertyDescriptor.call(this);
-    this.__Get__ = undefined;
-    this.__Set__ = undefined;
+    this.[[Get]] = undefined;
+    this.[[Set]] = undefined;
 }
 
 /**
@@ -95,7 +95,7 @@ function AccessorDescriptor() {
  *
  * An object's prototype chain must have finite length.
  */
-Object.prototype.__GetPrototypeOf__ = K;
+Object.prototype.[[GetPrototypeOf]] = K;
 
 /**
  * Associate with an object another object that provides inherited properties.
@@ -105,38 +105,38 @@ Object.prototype.__GetPrototypeOf__ = K;
  *
  * Must return Boolean Type.
  */
-Object.prototype.__SetPrototypeOf__ = K;
+Object.prototype.[[SetPrototypeOf]] = K;
 
 /**
  * Determine whether it is permitted to add additional properties to an object.
  */
-Object.prototype.__IsExtensible__ = K;
+Object.prototype.[[IsExtensible]] = K;
 
 /**
  * Control whether new properties may be added to an object.
  * Returns true indicating that the operation was completed successfully
  * or false indicating that the operation was not successful.
  */
-Object.prototype.__PreventExtensions__ = K;
+Object.prototype.[[PreventExtensions]] = K;
 
 /**
  * Returns a Property Descriptor for the own property of this object
  * whose key is propertyKey, or undefined if no such property exists.
  */
-Object.prototype.__GetOwnProperty__ = K;
+Object.prototype.[[GetOwnProperty]] = K;
 
 /**
  * Returns a Boolean value indicating whether the object
  * already has either an own or inherited property whose key is propertyKey.
  */
-Object.prototype.__HasProperty__ = K;
+Object.prototype.[[HasProperty]] = K;
 
 /**
  * Retrieve the value of an object’s property using the propertyKey parameter.
  * If any ECMAScript code must be executed to retrieve the property value,
  * Receiver is used as the this value when evaluating the code.
  */
-Object.prototype.__Get__ = K;
+Object.prototype.[[Get]] = K;
 
 /**
  * Try to set the value of an object’s property indentified by propertyKey to value.
@@ -145,14 +145,14 @@ Object.prototype.__Get__ = K;
  * Returns true indicating that the property value was set or false
  * indicating that it could not be set.
  */
-Object.prototype.__Set__ = K;
+Object.prototype.[[Set]] = K;
 
 /**
  * Removes the own property indentified by the propertyKey parameter from the object.
  * Return false if the property was not deleted and is still present.
  * Return true if the property was deleted or was not present.
  */
-Object.prototype.__Delete__ = K;
+Object.prototype.[[Delete]] = K;
 
 /**
  * Creates or alters the named own property to have the state described
@@ -160,18 +160,18 @@ Object.prototype.__Delete__ = K;
  * successfully created/updated or false indicating that the property could
  * not be created or updated.
  */
-Object.prototype.__DefineOwnProperty__ = K;
+Object.prototype.[[DefineOwnProperty]] = K;
 
 /**
  * Returns an iterator object over the string values of the keys
  * of the enumerable properties of the object.
  */
-Object.prototype.__Enumerate__ = K;
+Object.prototype.[[Enumerate]] = K;
 
 /**
  * Returns an Iterator object that produces all of the own property keys for the object.
  */
-Object.prototype.__OwnPropertyKeys__ = K;
+Object.prototype.[[OwnPropertyKeys]] = K;
 
 /**
  * Executes code associated with the object.
@@ -180,7 +180,7 @@ Object.prototype.__OwnPropertyKeys__ = K;
  * a list containing the arguments passed to the function by a call expression.
  * Objects that implement this internal method are callable.
  */
-Function.prototype.__Call__ = K;
+Function.prototype.[[Call]] = K;
 
 /**
  * Creates an object. Invoked via the new operator.
@@ -189,7 +189,7 @@ Function.prototype.__Call__ = K;
  * A Function object is not necessarily a constructor and such non-constructor Function
  * objects do not have a [[Construct]] internal method.
  */
-Function.prototype.__Construct__ = K;
+Function.prototype.[[Construct]] = K;
 
 //http://people.mozilla.org/~jorendorff/es6-draft.html#sec-invariants-of-the-essential-internal-methods
 
@@ -218,9 +218,9 @@ function Record() {}
  */
 function CompletionRecord() {
     Record.call(this);
-    this.__type__ = 'normal';//normal, break, continue, return, throw
-    this.__value__;
-    this.__target__;
+    this.[[type]] = 'normal';//normal, break, continue, return, throw
+    this.[[value]];
+    this.[[target]];
 }
 
 function ReturnIfArupt(argument) {}
@@ -276,10 +276,9 @@ function GetValue(V) {
     if(IsUnresolvableReference(V)) throw new ReferenceError();
     if(IsPropertyReference(V)) {
         if(HasPrimitiveBase(V)) {
-            //Assert:
             base = ToObject(base);
         } else {
-            return base.__Get__(GetReferenceName(V), GetThisValue(V));
+            return base.[[Get]](GetReferenceName(V), GetThisValue(V));
         }
     } else { // base is an environment record
         return base.GetBindingValue(GetReferenceName(V), IsStrictReference(V));
@@ -301,10 +300,9 @@ function PutValue(V, W) {
         return Put(globalObj, GetReferenceName(V), W, false);
     } else if(IsPropertyReference(V)) {
         if(HasPrimitiveBase(V)) {
-            //TODO: Assert
             base = ToObject(base);
         }
-        succeeded = base.__Set__(GetReferenceName(V), W, GetThisValue(V));
+        succeeded = base.[[Set]](GetReferenceName(V), W, GetThisValue(V));
         ReturnIfArupt(succeeded);
         if(!succeeded && IsStrictReference(V)) throw new TypeError();
         return;
@@ -333,13 +331,13 @@ function GetThisValue(V) {
 
 function IsAccessorDescriptor(Desc) {
     if(Desc === undefined) return false;
-    if(Desc.__Get__ && Desc.__Set__) return false;
+    if(Desc.[[Get]] && Desc.[[Set]]) return false;
     return true;
 }
 
 function IsDataDescriptor(Desc) {
     if(Desc === undefined) return false;
-    if(Desc.__Value__ && Desc.__Writable__) return false;
+    if(Desc.[[Value]] && Desc.[[Writable]]) return false;
     return true;
 }
 
@@ -351,57 +349,57 @@ function IsGenericDescriptor(Desc) {
 
 function FromPropertyDescriptor(Desc) {
     if(Desc === undefined) return undefined;
-    if('__Origin__' in Desc) return Desc.__Origin__;
+    if('[[Origin]]' in Desc) return Desc.[[Origin]];
     var obj = Object.create(Object.prototype);
     //Assert
-    if('__Value__' in Desc) {
+    if('[[Value]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'value', {
-            [[Value]]: Desc.__Value__,
+            [[Value]]: Desc.[[Value]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
         })
     }
 
-    if('__Writable__' in Desc) {
+    if('[[Writable]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'Writable', {
-            [[Value]]: Desc.__Writable__,
+            [[Value]]: Desc.[[Writable]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
         })
     }
 
-    if('__Get__' in Desc) {
+    if('[[Get]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'get', {
-            [[Value]]: Desc.__Get__,
+            [[Value]]: Desc.[[Get]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
         })
     }
 
-    if('__Set__' in Desc) {
+    if('[[Set]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'Set', {
-            [[Value]]: Desc.__Set__,
+            [[Value]]: Desc.[[Set]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
         })
     }
 
-    if('__Enumerate__' in Desc) {
+    if('[[Enumerate]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'enumerable', {
-            [[Value]]: Desc.__Enumerate__,
+            [[Value]]: Desc.[[Enumerate]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
         })
     }
 
-    if('__Configurable__' in Desc) {
+    if('[[Configurable]]' in Desc) {
         OrdinaryDefineOwnProperty(obj, 'configurable', {
-            [[Value]]: Desc.__Configurable__,
+            [[Value]]: Desc.[[Configurable]],
             [[Writable]]: true,
             [[Enumerable]]: true,
             [[Configurable]]: true
