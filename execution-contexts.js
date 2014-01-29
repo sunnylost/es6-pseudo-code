@@ -419,3 +419,73 @@ function NewFunctionEnvironment(F, T) {
     env.outerLexicalEnvironment = F.__Environment__;
     return env;
 }
+
+/**
+ * 8.2 Code Realms
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-code-realms
+ */
+function CreateRealm() {
+    var realmRec = new Record();
+    var intrinsics = new Record();
+    /**
+     * http://people.mozilla.org/~jorendorff/es6-draft.html#table-7
+     * initialized intrinsics with the value listed in Table 7.
+     */
+    realmRec.[[intrinsics]] = intrinsics;
+    var newGlobal = ObjectCreate(null);//ObjectCreate is defined in 9.1.13
+    //
+    realmRec.[[globalThis]] = newGlobal;
+    var newGlobalEnv = NewGlobalEnvironment(newGlobal, intrinsics); //I don't know where is NewGlobalEnvironment defined.
+    realmRec.[[globalEnv]] = newGlobalEnv;
+    realmRec.[[directEvalTranslate]] = undefined;
+    realmRec.[[directEvalFallback]] = undefined;
+    realmRec.[[indirectEval]] = undefined;
+    realmRec.[[Function]] = undefined;
+    return realmRec;
+}
+
+/**
+ * 8.3 Execution Contexts
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-execution-contexts
+ */
+function ResolveBinding(name) {
+    var env = RunningExecutionContext.LexicalEnvironment;
+    var strict = true; //or false
+    return GetIdentifierRefrence(env, name, strict);
+}
+
+/**
+ * The loop in step 2 will always terminate because the list of environments always ends with the global environment which has a this binding.
+ */
+function GetThisEnvironment() {
+    var lex = RunningExecutionContext.LexicalEnvironment;
+    while(1) {
+        var envRec = lex.EnvironmentRecord;
+        var exists = envRec.HasThisBinding();
+        if(exists) return envRec;
+        var outer = lex.outerLexicalEnvironment;
+        lex = outer;
+    }
+}
+
+function ResolveThisBinding() {
+    var env = GetThisEnvironment();
+    return env.GetThisBinding();
+}
+
+function GetGlobalObject() {
+    var ctx = RunningExecutionContext;
+    var currentRealm = ctx.Realm;
+    return currentRealm.[[globalThis]];
+}
+
+/**
+ * 8.4 Tasks and Task Queues
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-tasks-and-task-queues
+ */
+function Task(task, arguments, reaml) {
+    this.[[Task]] = task;
+    this.[[Arguments]] = arguments;
+    this.[[Realm]] = reaml;
+}
+//TODO
