@@ -138,7 +138,7 @@ ObjectEnvironmentRecord.prototype = {
     DeleteBinding: function(N) {
         var envRec = this;
         var bindings = envRec.bindingObject;
-        return bindings.__Delete__(N);
+        return bindings.[[Delete]](N);
     },
 
     HasThisBinding: function() {
@@ -285,10 +285,10 @@ GlobalEnvironmentRecord.prototype.CanDeclareGlobalFunction  = function(N) {
     var extensible = IsExtensible(globalObject);
     ReturnIfAbrupt(extensible);
     if(!ObjRec.HasBinding(N)) return extensible;
-    var existingProp = globalObject.__GetOwnProperty__(N);
+    var existingProp = globalObject.[[GetOwnProperty]](N);
     if(existingProp === undefined) return extensible;
-    if(existingProp.__Configurable__) return true;
-    if(IsDataDescriptor(existingProp) && existingProp.__Writable__ === true && existingProp.__Enumerable__ === true) return true;
+    if(existingProp.[[Configurable]]) return true;
+    if(IsDataDescriptor(existingProp) && existingProp.[[Writable]] === true && existingProp.[[Enumerable]] === true) return true;
     return false;
 };
 
@@ -310,8 +310,8 @@ GlobalEnvironmentRecord.prototype.CreateGlobalFunctionBinding = function(N, V, D
     var envRec = this;
     var ObjRec = envRec.ObjectEnvironment;
     var globalObject = ObjRec.bindingObject;
-    var existingProp = globalObject.__GetOwnProperty__(N);
-    if(existingProp === undefined || existingProp.__Configurable__ === true) {
+    var existingProp = globalObject.[[GetOwnProperty]](N);
+    if(existingProp === undefined || existingProp.[[Configurable]] === true) {
         var desc = new PropertyDescriptior({
             [[Value]]: V,
             [[Writable]]:true,
@@ -353,7 +353,7 @@ FunctionEnvironmentRecord.prototype.GetSuperBase = function() {
     var home = this.HomeObject;
     if(!home) return undefined;
     if(Type(O) === 'object') {
-        home.__GetPrototypeOf__();
+        home.[[GetPrototypeOf]]();
     }
 };
 
@@ -407,16 +407,16 @@ function NewFunctionEnvironment(F, T) {
     var env = new LexicalEnvironment();
     var envRec = new FunctionEnvironmentRecord();
     envRec.thisValue = T;
-    if(F.__NeedSuper__) {
-        var home = F.__HomeOjbect__;
+    if(F.[[NeedSuper]]) {
+        var home = F.[[HomeOjbect]];
         if(home === undefined) throw new ReferenceError();
         envRec.HomeObject = home;
-        envRec.MethodName = F.__MethodName__;
+        envRec.MethodName = F.[[MethodName]];
     } else {
         envRec.HomeObject = Empty;
     }
     env.EnvironmentRecord = envRec;
-    env.outerLexicalEnvironment = F.__Environment__;
+    env.outerLexicalEnvironment = F.[[Environment]];
     return env;
 }
 

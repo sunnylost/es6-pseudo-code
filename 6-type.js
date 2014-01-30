@@ -55,21 +55,21 @@ function Symbol(name) {
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-property-attributes
  */
 
-function PropertyDescriptor() {
-    this.[[Enumerable]]   = false;
-    this.[[Configurable]] = false;
+function PropertyDescriptor(arguments) {
+    this.[[Enumerable]]   = arguments ? arguments.[[Enumerable]] : false;
+    this.[[Configurable]] = arguments ? arguments.[[Configurable]] : false;
 }
 
-function DataDescriptor() {
-    PropertyDescriptor.call(this);
-    this.[[Value]]    = undefined;
-    this.[[Writable]] = false;
+function DataDescriptor(arguments) {
+    PropertyDescriptor.call(this, arguments);
+    this.[[Value]]    = arguments ? arguments.[[Value]] : undefined;
+    this.[[Writable]] = arguments ? arguments.[[Writable]] : false;
 }
 
-function AccessorDescriptor() {
-    PropertyDescriptor.call(this);
-    this.[[Get]] = undefined;
-    this.[[Set]] = undefined;
+function AccessorDescriptor(arguments) {
+    PropertyDescriptor.call(this, arguments);
+    this.[[Get]] = arguments ? arguments.[[Get]] : undefined;
+    this.[[Set]] = arguments ? arguments.[[Set]] : undefined;
 }
 
 /**
