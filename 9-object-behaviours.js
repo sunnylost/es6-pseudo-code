@@ -3,6 +3,9 @@
  * http://people.mozilla.org/~jorendorff/es6-draft.html#sec-ordinary-and-exotic-objects-behaviours
  */
 
+Object.prototype.[[Prototype]]  = null;
+Object.prototype.[[Extensible]] = true;
+
 /**
  * 9.1.1
  */
@@ -121,7 +124,13 @@ Object.prototype.[[Set]] = function(P, V, Receiver) {
  * 9.1.10
  */
 Object.prototype.[[Delete]] = function(P) {
-
+    var desc = this.[[GetOwnProperty]](P);
+    if(!desc) return true;
+    if(desc.[[Configurable]]) {
+        //Remove the own property with the name P from O
+        return true;
+    }
+    return false;
 };
 
 /**
@@ -135,5 +144,208 @@ Object.prototype.[[Enumerate]] = function() {
  * 9.1.12
  */
 Object.prototype.[[OwnPropertyKeys]] = function() {
-
+    var keys = new List();
+    for(var P in this) { // For each own property key P of O, may be not like this...
+        keys.add(P);
+    }
+    return CreateListIterator(keys);
 };
+
+/**
+ * 9.1.13
+ */
+function ObjectCreate(proto, internalDataList) {}
+
+/**
+ * 9.1.14
+ */
+function OrdinaryCreateFromConstructor(constructor, intrinsicDefaultProto, internalDataList) {}
+
+/**
+ * 9.2 ECMAScript Function Objects
+ */
+
+/**
+ * Function has addition interal slots
+ * http://people.mozilla.org/~jorendorff/es6-draft.html#table-26
+ */
+Function.prototype.[[Environment]] = new LexicalEnvironment();
+Function.prototype.[[FormalParameters]]; //parse node
+Function.prototype.[[FunctionKind]] = 'normal';//or 'generator'
+Function.prototype.[[Code]];//parse node
+Function.prototype.[[Realm]] = new Realm();
+Function.prototype.[[ThisMode]]; //lexical, strict, global
+Function.prototype.[[Strict]]     = false;
+Function.prototype.[[NeedsSuper]] = false;
+Function.prototype.[[HomeObject]] = null;
+Function.prototype.[[MethodName]] = '';//or a symbol
+
+/**
+ * 9.2.1
+ */
+Function.prototype.[[Construct]] = function(argumentsList) {
+    return Construct(this, argumentsList);
+};
+
+/**
+ * 9.2.2
+ * non-strict mode
+ */
+Function.prototype.[[GetOwnProperty]] = function(P) {
+    var v = OrdinaryGetOwnProperty(this, P);
+    ReturnIfAbrupt(v);
+    if(IsDataDescriptor(v)) {
+        //v.[[Value]] is a strict mode Function object
+        if(P === 'caller' && v.[[Value]].[[Strict]]) {
+            v.[[Value]] = null;
+        }
+    }
+    return v;
+}
+
+/**
+ * 9.2.3 FunctionAllocate Abstract Operation
+ */
+function FunctionAllocate(functionPrototype, strict, functionKind) {
+    functionKind = functionKind || 'normal';
+    var F = new Function();
+    if(strict) {
+        F.[[GetOwnProperty]] = Object.prototype.[[GetOwnProperty]];
+    }
+    F.[[Strict]] = strict;
+    F.[[FunctionKind]] = functionKind;
+    F.[[Prototype]] = functionPrototype;
+    F.[[Extensible]] = true;
+    F.[[Realm]] = RunningExecutionContext.Realm;
+    return F;
+}
+
+/**
+ * 9.2.4
+ */
+Function.prototype.[[Call]] = function(thisArgument, argumentsList) {
+    if(F.[[Code]] === undefined) throw new TypeError();
+    var callerContext = RunningExecutionContext;
+    /**
+     * NOTE:
+     *     isSuspended and suspend() are not defined in this spec.
+     */
+    if(!callerContext.isSuspended) {
+        callerContext.suspend();
+    }
+    var calleeContext = new ExecutionContext();
+    var calleeRealm = F.[[Realm]];
+    calleeContext.Realm = calleeRealm;
+    var ThisMode = F.[[ThisMode]];
+
+    var localEnv, thisValue;
+    if(ThisMode === 'lexical') {
+        localEnv = NewDeclarativeEnvironment(F.[[Environment]]);
+    } else {
+        if(ThisMode === 'strict') {
+            thisValue = thisArgument;
+        } else {
+            if(!thisArgument) {
+                thisValue = calleeRealm.[[globalThis]];
+            } else if(Type(thisArgument) !== 'object') {
+                thisValue = ToObject(thisArgument);
+            } else {
+                thisValue = thisArgument;
+            }
+        }
+        localEnv = NewFunctionEnvironment(F, thisValue);
+        ReturnIfAbrupt(localEnv);
+    }
+    calleeContext.LexicalEnvironment = localEnv;
+    calleeContext.VariableEnvironment = localEnv;
+    /**
+     * push calleeContext onto the execution context stack
+     */
+    RunningExecutionContext = callerContext;
+    var status = FunctionDeclarationInstantiation(F, argumentsList, localEnv);
+    if(status.[[value]] !== 'normal') {
+        /**
+         * remove calleeContext from the execution context stack
+         */
+        RunningExecutionContext = callerContext;
+        return status;
+    }
+    /**
+     * Let result be the result of EvaluateBody of the production that is the value of F's [[Code]] internal slot passing F as the argument.
+     * 
+     * remove calleeContext from the execution context stack
+     */
+    RunningExecutionContext = callerContext;
+    return result;
+}
+
+/**
+ * 9.2.5 FunctionInitialise Abstract Operation
+ */
+function FunctionInitialise(F, kind, ParameterList, Body, Scope) {
+    var len = ParameterList.ExpectedArgumentCount;
+    var strict = F.[[Strict]];
+    var status = DefinePropertyOrThrow(F, 'length', new PropertyDescriptor({
+        [[Value]]: len,
+        [[Writable]]: false,
+        [[Enumerable]]: false,
+        [[Configurable]]: true
+    }));
+    ReturnIfAbrupt(status);
+    if(strict) {
+        status = AddRestrictedFunctionProperties(F);
+        ReturnIfAbrupt(status);
+    }
+    F.[[Environment]] = Scope;
+    F.[[FormalParameters]] = ParameterList;
+    F.[[Code]] = Body;
+    if(kind === 'arrow') {
+        F.[[ThisMode]] = 'lexical';
+    } else if(strict) {
+        F.[[ThisMode]] = 'strict';
+    } else {
+        F.[[ThisMode]] = 'global';
+    }
+    return F;
+}
+
+/**
+ * 9.2.6 FunctionCreate Abstract Operation
+ */
+
+/**
+ * 9.2.7 GeneratorFunctionCreate Abstract Operation
+ */
+
+/**
+ * 9.2.8 AddRestrictedFunctionProperties Abstract Operation
+ */
+
+/**
+ * 9.2.9 MakeConstructor Abstract Operation
+ */
+
+/**
+ * 9.2.10 MakeMethod ( F, methodName, homeObject) Abstract Operation
+ */
+
+/**
+ * 9.2.11 SetFunctionName Abstract Operation
+ */
+
+/**
+ * 9.2.12 GetSuperBinding(obj) Abstract Operation
+ */
+
+/**
+ * 9.2.13 CloneMethod(function, newHome, newName) Abstract Operation
+ */
+
+/**
+ * 9.2.14 Function Declaration Instantiation
+ * NOTE:
+ *     this version is not update.
+ */
+function FunctionDeclarationInstantiation() {
+
+}
