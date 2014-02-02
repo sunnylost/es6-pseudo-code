@@ -182,6 +182,8 @@ Function.prototype.[[MethodName]] = '';//or a symbol
 
 /**
  * 9.2.1
+ *
+ * Construct defined in 7.3.18
  */
 Function.prototype.[[Construct]] = function(argumentsList) {
     return Construct(this, argumentsList);
@@ -311,41 +313,276 @@ function FunctionInitialise(F, kind, ParameterList, Body, Scope) {
 
 /**
  * 9.2.6 FunctionCreate Abstract Operation
+ *
+ * kind: Normal, Method, Arrow
  */
+function FunctionCreate(kind, ParameterList, Body, Scope, Strict, functionPrototype) {
+    functionPrototype = functionPrototype || Realm.%FunctionPrototype%;
+    var F = FunctionAllocate(functionPrototype, Strict);
+    return FunctionInitialise(F, kind, ParameterList, Body, Scope);
+}
 
 /**
  * 9.2.7 GeneratorFunctionCreate Abstract Operation
  */
+function GeneratorFunctionCreate(kind, ParameterList, Body, Scope, Strict, functionPrototype) {
+    functionPrototype = = functionPrototype || Realm.%FunctionPrototype%;
+    var F = FunctionAllocate(functionPrototype, Strict, 'generator');
+    return FunctionInitialise(F, kind, ParameterList, Body, Scope);
+}
 
 /**
  * 9.2.8 AddRestrictedFunctionProperties Abstract Operation
  */
+function AddRestrictedFunctionProperties(F) {
+    var thrower = Realm.%ThrowTypeError%;
+    var status = DefinePropertyOrThrow(F, 'caller', new PropertyDescriptor({
+        [[Get]]: thrower,
+        [[Set]]: thrower,
+        [[Enumerable]]: false,
+        [[Configurable]]: false
+    }));
+    ReturnIfAbrupt(status);
+    return DefinePropertyOrThrow(F, 'arguments', new PropertyDescriptor({
+        [[Get]]: thrower,
+        [[Set]]: thrower,
+        [[Enumerable]]: false,
+        [[Configurable]]: false
+    }));
+}
+
+/**
+ * %ThrowTypeError% object is a unique function object that is defined once for each Reaml as follows:
+ * Assert: %FunctionPrototype% for the current Realm has already been initialised.
+ * Let functionPrototype be the intrinsic object %FunctionPrototype%.
+ * Let scope be the Global Environment of the current Realm.
+ * Let formalParameters be the syntactic production: FormalParameters : [empty] .
+ * Let body be the syntactic production: FunctionBody : ThrowTypeError .
+ * Let F be the result of performing FunctionAllocate with arguments functionPrototype and true.
+ * Let %ThrowTypeError% be F.
+ * Perform the abstract operation FunctionInitialise with arguments F, Normal, formalParameters, body, and scope.
+ * Call the [[PreventExtensions]] internal method of F.
+ * Return F.
+ */
+
 
 /**
  * 9.2.9 MakeConstructor Abstract Operation
  */
+function MakeConstructor(F, writablePrototype, prototype) {
+    var installNeeded = false;
+    var status;
+
+    if(!prototype) {
+        installNeeded = true;
+        prototype = Realm.%ObjectPrototype%;
+    }
+    if(!writablePrototype) {
+        writablePrototype = true;
+    }
+    F.[[Construct]] = Function.prototype.[[Construct]];
+    if(installNeeded) {
+        status = DefinePropertyOrThrow(prototype, 'constructor', new PropertyDescriptor({
+            [[Value]]: F,
+            [[Writable]]: writablePrototype,
+            [[Enumerable]]: false,
+            [[Configurable]]: writablePrototype
+        }));
+        ReturnIfAbrupt(status);
+    }
+    status = DefinePropertyOrThrow(F, 'prototype', new PropertyDescriptor({
+        [[Value]]: prototype,
+        [[Writable]]: writablePrototype,
+        [[Enumerable]]: false,
+        [[Configurable]]: false
+    }));
+    ReturnIfAbrupt(status);
+    return NormalCompletion(undefined);
+}
 
 /**
  * 9.2.10 MakeMethod ( F, methodName, homeObject) Abstract Operation
  */
+function MakeMethod(F, methodName, homeObject) {
+    F.[[NeedsSuper]] = true;
+    F.[[HomeObject]] = homeObject;
+    F.[[MethodName]] = methodName;
+    return NormalCompletion(undefined);
+}
 
 /**
  * 9.2.11 SetFunctionName Abstract Operation
  */
+function SetFunctionName(F, name, prefix) {
+    var description;
+    if(Type(name) === 'symbol') {
+        description = name.[[description]];
+        if(!description) {
+            name = '';
+        } else {
+            name = '[' + description + ']';
+        }
+    }
+    if(name !=== '' && prefix) {
+        name = prefix + ' ' + name;
+    }
+    F.[[DefineOwnProperty]]('name', new PropertyDescriptor({
+        [[Value]]: name,
+        [[Writable]]: false,
+        [[Enumerable]]: false,
+        [[Configurable]]: true
+    }));
+    return NormalCompletion(undefined);
+}
 
 /**
  * 9.2.12 GetSuperBinding(obj) Abstract Operation
  */
+function GetSuperBinding(obj) {
+    if(Type(obj) !== 'object') return undefined;
+    if(!obj.[[NeedsSuper]]) return undefined;
+    return obj.[[HomeObject]];
+}
 
 /**
- * 9.2.13 CloneMethod(function, newHome, newName) Abstract Operation
+ * 9.2.13 CloneMethod(F, newHome, newName) Abstract Operation
  */
+function CloneMethod(F, newHome, newName) {
+    var newF = new Function();
+    if(F.[[NeedsSuper]]) {
+        newF.[[HomeObject]] = newHome;
+        newF.[[MethodName]] = newName || F.[[MethodName]];
+    }
+    return newF;
+}
 
 /**
  * 9.2.14 Function Declaration Instantiation
+ *
+ * NOTE When an execution context is established for evaluating function code a new
+ * Declarative Environment Record is created and bindings for each formal parameter, 
+ * and each function level variable, constant, or function declarated in the function 
+ * are instantiated in the environment record. Formal parameters and functions are
+ * initialised as part of this process. All other bindings are initialised during 
+ * execution of the function code.
+ * 
  * NOTE:
  *     this version is not update.
  */
-function FunctionDeclarationInstantiation() {
+function FunctionDeclarationInstantiation(func, argumentsList, env) {
+    var code = func.[[Code]];
+    var strict = func.[[Strict]];
+    var formals = func.[[FormalParameters]];
+    var parameterNames = formals.BoundNames;
+    var varDeclaratons = code.VarScopedDeclarations;
+    var functionsToInitialise = new List();
+    var argumentsObjectNeeded = func.[[ThisMode]] === 'lexical' ? false : true;
 
+    var len = varDeclaratons.length;
+    while(len--) {
+        var d = varDeclaratons[len];
+        if(d is FunctionDeclaration) {
+            /**
+             * NOTE: If there are multiple FunctionDeclarations for the same name,
+             * the last declaration is used.
+             *
+             * I think I should use env.VarNames to get d's BoundNames.
+             */
+            var fn = d.BoundNames;
+            if(fn === 'arguments') {
+                argumentsObjectNeeded = false;
+            }
+            var alreadyDeclared = env.HasBinding(fn);
+            if(!alreadyDeclared) {
+                var status = env.CreateMutableBinding(fn);
+                functionsToInitialise.append(d);
+            }
+        }
+    }
+    for(var paramName of parameterNames) {
+        var alreadyDeclared = env.HasBinding(paramName);
+        /**
+         * NOTE: Duplicate parameter names can only occur in non-strict functions. 
+         * Parameter names that are the same as function declaration names do not 
+         * get initialised to undefined.
+         */
+        if(!alreadyDeclared) {
+            if(paramName === 'arguments') {
+                argumentsObjectNeeded = false;
+            }
+            var status = env.CreateMutableBinding(paramName);
+            env.InitialiseBinding(paramName, undefined);
+        }
+    }
+    /**
+     * NOTE: If there is a function declaration or formal parameter with the name
+     * 'arguments' then an argument object is not created.
+     */
+    if(argumentsObjectNeeded) {
+        if(strict) {
+            env.CreateImmutableBinding('arguments');
+        } else {
+            var status = env.CreateMutableBinding('arguments');
+        }
+    }
+    varNames = code.VarDeclaredNames;
+    for(var varName of varNames) {
+        alreadyDeclared = env.HasBinding(varName);
+        /**
+         * NOTE: A VarDeclaredNames is only instantiated and initialised here
+         * if it is not also the name of a formal parameter or a FunctionDeclarations.
+         */
+        if(!alreadyDeclared) {
+            status = env.CreateMutableBinding(varName);
+        }
+    }
+    var lexDeclarations = code.LexicalDeclarations;
+    for(var d of lexDeclarations) {
+        /**
+         * NOTE: A lexically declared name cannot be the same as a function declaration, 
+         * formal parameter, or a var name. Lexically declarated names are only 
+         * instantiated here but not initialised.
+         */
+        for(var dn of d.BoundNames) {
+            if(IsConstantDeclaration(d)) {
+                env.CreateImmutableBinding(dn);
+            } else {
+                status = env.CreateMutableBinding(dn, false);
+            }
+        }
+        if(d is GeneratorDeclaration) {
+            functionsToInitialise.append(d);
+        }
+    }
+    for(var f of functionsToInitialise) {
+        var fn = f.BoundNames;
+        var fo = f.InstantiateFunctionObject(env);
+        status = env.SetMutableBinding(fn, fo, false);
+    }
+    /**
+     * NOTE: Function declaration are initialised prior to parameter initialisation 
+     * so that default value expressions may reference them. "arguments" is not 
+     * initialised until after parameter initialisation.
+     */
+    var formalStatus = formals.IteratorBindingInitialisation(CreateListIterator(argumentsList), undefined);
+    ReturnIfAbrupt(formalStatus);
+    if(argumentsObjectNeeded) {
+        var ao = InstantiateArgumentsObject(argumentsList);
+        if(strict) {
+            CompleteStrictArgumentsObject(ao);
+        } else {
+            CompleteMappedArgumentsObject(ao, func, formals, env);
+        }
+        env.InitialiseBinding('arguments', ao);
+    }
+    return NormalCompletion(empty);
 }
+/**
+ * 9.3 Built-in Function Objects
+ */
+/**
+ * 9.4 Built-in Exotic Object Internal Methods and Data Fields
+ */
+/**
+ * 9.5 Proxy Object Internal Methods and Internal Slots
+ */
